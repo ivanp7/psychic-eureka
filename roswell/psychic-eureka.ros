@@ -1,0 +1,86 @@
+#!/bin/sh
+#|-*- mode:lisp -*-|#
+#|
+exec ros -Q -L sbcl-bin -m psychic-eureka -- $0 "$@"
+|#
+(progn ;;init forms
+  (setf *load-verbose* nil *load-print* nil
+        *compile-verbose* nil *compile-print* nil)
+  (ros:ensure-asdf)
+  #+quicklisp(ql:quickload '(:alexandria :unix-opts) :silent t)
+  (asdf:load-system :psychic-eureka))
+
+(defpackage #:ros.script.psychic-eureka
+  (:use #:cl))
+(in-package #:ros.script.psychic-eureka)
+
+(unix-opts:define-opts
+  (:name :help
+   :description "show usage help"
+   :short #\h :long "help")
+  (:name :version
+   :description "show version"
+   :short #\v :long "version")
+  (:name :x-size
+   :description "screen width"
+   :short #\x :long "cols"
+   :arg-parser #'parse-integer :meta-var "WIDTH")
+  (:name :y-size
+   :description "screen height"
+   :short #\y :long "rows"
+   :arg-parser #'parse-integer :meta-var "HEIGHT")
+  (:name :delay
+   :description "delay between frames, milliseconds"
+   :short #\d :long "delay"
+   :arg-parser #'parse-integer :meta-var "TIME"))
+
+(defvar *version* 
+  (with-open-file 
+    (stream (merge-pathnames #P"version.sexp" 
+                             (asdf:system-source-directory :psychic-eureka))
+            :if-does-not-exist nil)
+    (when stream (read stream nil))))
+
+(defun version-string ()
+  (format nil "psychic-eureka ~A~%(C) Ivan Podmazov" 
+          (if *version* *version* "")))
+
+(defun show-version ()
+  (format t "~A~%" (version-string)))
+
+(defun show-help (&optional prefix stream)
+  (unix-opts:describe 
+    :prefix (if prefix prefix (version-string)) 
+    :usage-of "psychic-eureka" :args "[MODEL]"
+    :suffix ""
+    :stream (if stream stream *standard-output*)))
+
+(defun arg-parse-error (msg)
+  (show-help (format nil "Arguments parsing error: ~A." msg) *error-output*)
+  1)
+
+(defun main (&rest argv)
+  (multiple-value-bind (options free-args) 
+      (handler-case (unix-opts:get-opts argv)
+        (t (msg) (return-from main (arg-parse-error msg))))
+    (let ((x (getf options :x-size 80)) (y (getf options :y-size 40))
+          (delay (getf options :delay 500)))
+      (cond
+        ((getf options :help) (show-help))
+        ((getf options :version) (show-version))
+        ((rest free-args) 
+         (arg-parse-error "too many arguments supplied"))
+        ((or (and x (<= x 0)) (and y (<= y 0)))
+         (arg-parse-error "screen width and height must be positive"))
+        ((and delay (< delay 0))
+         (arg-parse-error "time delay must be nonnegative"))
+        (t (psychic-eureka:initialize-screen)
+           (handler-case 
+             (loop
+               (funcall psychic-eureka:*buffer-update-fn*)
+               (psychic-eureka:display-buffer psychic-eureka:*buffer* x y)
+               (sleep (/ delay 1000)))
+             (t (msg) (format *error-output* "~A~%" msg) 1))
+           (psychic-eureka:uninitialize-screen))))))
+
+;;; vim: set ft=lisp lisp:
