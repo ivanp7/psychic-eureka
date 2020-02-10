@@ -9,8 +9,11 @@
 (defvar *buffer* nil)
 (defvar *buffer-update-fn* (constantly nil))
 
+(defvar *screen-size-x* 80)
+(defvar *screen-size-y* 40)
+
 (defun initialize-screen (&optional (stream *standard-output*))
-  (format stream "~C[?25l~C[?1049h" #\Esc #\Esc)
+  (format stream "~C[?25l~C[?1049h~C[2J" #\Esc #\Esc #\Esc)
   (force-output stream)
   t)
 
@@ -23,18 +26,19 @@
         (make-array 256 :element-type 'string
                     :initial-contents
                     (loop :for value :below 256
-                          :collect (format nil "~A" value))))) 
-
-  (defun display-buffer (buffer size-x size-y
-                        &key (stream *standard-output*) (displ-x 0) (displ-y 0)
-                        init-sequence linefeed)
+                          :collect (format nil "~A" value)))))
+  (defun display-buffer (buffer &key size-x size-y (stream *standard-output*) 
+                                (displ-x 0) (displ-y 0) init-sequence linefeed)
     "Print buffer to STREAM using ANSI color codes.
     Custom initializing sequence and line feed may be provided."
     (declare (type rgb-buffer buffer) 
-             (type coord size-x size-y displ-x displ-y) 
+             (type (or null coord) size-x size-y)
+             (type coord displ-x displ-y) 
              (type stream stream)
              (type (or null string) init-sequence linefeed))
-    (let ((init-sequence (or init-sequence 
+    (let ((size-x (or size-x *screen-size-x*)) 
+          (size-y (or size-y *screen-size-y*)) 
+          (init-sequence (or init-sequence 
                              (format nil "~C[~A;~AH" 
                                      #\Esc (1+ displ-y) (1+ displ-x))))
           (linefeed (or linefeed (format nil "~C[0m~%" #\Esc))))

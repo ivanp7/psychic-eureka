@@ -11,5 +11,6 @@
                (:static-file "roswell/psychic-eureka.ros")
                (:file "package") 
                (:file "ll" :depends-on ("package"))
-               (:file "test" :depends-on ("ll"))))
+               (:file "value-map" :depends-on ("package"))
+               (:file "test" :depends-on ("ll" "value-map"))))
 

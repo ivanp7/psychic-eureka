@@ -63,8 +63,10 @@ exec ros -Q -L sbcl-bin -m psychic-eureka -- $0 "$@"
   (multiple-value-bind (options free-args) 
       (handler-case (unix-opts:get-opts argv)
         (t (msg) (return-from main (arg-parse-error msg))))
-    (let ((x (getf options :x-size 80)) (y (getf options :y-size 40))
+    (let ((x (getf options :x-size psychic-eureka:*screen-size-x*)) 
+          (y (getf options :y-size psychic-eureka:*screen-size-y*))
           (delay (getf options :delay 500)))
+      (setf psychic-eureka:*screen-size-x* x psychic-eureka:*screen-size-y* y)
       (cond
         ((getf options :help) (show-help))
         ((getf options :version) (show-version))
@@ -78,7 +80,7 @@ exec ros -Q -L sbcl-bin -m psychic-eureka -- $0 "$@"
            (handler-case 
              (loop
                (funcall psychic-eureka:*buffer-update-fn*)
-               (psychic-eureka:display-buffer psychic-eureka:*buffer* x y)
+               (psychic-eureka:display-buffer psychic-eureka:*buffer*)
                (sleep (/ delay 1000)))
              (t (msg) (format *error-output* "~A~%" msg) 1))
            (psychic-eureka:uninitialize-screen))))))
