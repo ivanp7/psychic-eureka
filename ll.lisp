@@ -10,7 +10,7 @@
 (defvar *buffer-update-fn* (constantly nil))
 
 (defvar *screen-size-x* 80)
-(defvar *screen-size-y* 40)
+(defvar *screen-size-y* 80)
 
 (defun initialize-screen (&optional (stream *standard-output*))
   (format stream "~C[?25l~C[?1049h~C[2J" #\Esc #\Esc #\Esc)
@@ -43,7 +43,7 @@
                                      #\Esc (1+ displ-y) (1+ displ-x))))
           (linefeed (or linefeed (format nil "~C[0m~%" #\Esc))))
       (write-string init-sequence stream)
-      (dotimes (y size-y)
+      (dotimes (y (floor size-y 2))
         (declare (type coord y))
         (dotimes (x size-x)
           (declare (type coord x))

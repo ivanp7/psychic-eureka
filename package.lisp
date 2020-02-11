@@ -7,5 +7,5 @@
            :initialize-screen :uninitialize-screen :display-buffer
 
            :*value-minimum* :*value-maximum* 
-           :value-to-grayscale :value-to-heatmap))
+           :value-to-grayscale :value-to-heatmap :value-to-circular-heatmap))
 

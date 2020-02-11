@@ -32,7 +32,11 @@ exec ros -Q -L sbcl-bin -m psychic-eureka -- $0 "$@"
   (:name :delay
    :description "delay between frames, milliseconds"
    :short #\d :long "delay"
-   :arg-parser #'parse-integer :meta-var "TIME"))
+   :arg-parser #'parse-integer :meta-var "TIME")
+  (:name :repeats
+   :description "maximum number of frames"
+   :short #\n :long "repeats"
+   :arg-parser #'parse-integer :meta-var "NUMBER"))
 
 (defvar *version* 
   (with-open-file 
@@ -65,8 +69,10 @@ exec ros -Q -L sbcl-bin -m psychic-eureka -- $0 "$@"
         (t (msg) (return-from main (arg-parse-error msg))))
     (let ((x (getf options :x-size psychic-eureka:*screen-size-x*)) 
           (y (getf options :y-size psychic-eureka:*screen-size-y*))
-          (delay (getf options :delay 500)))
-      (setf psychic-eureka:*screen-size-x* x psychic-eureka:*screen-size-y* y)
+          (delay (getf options :delay 500))
+          (repeats (getf options :repeats)))
+      (setf psychic-eureka:*screen-size-x* x 
+            psychic-eureka:*screen-size-y* (* 2 y))
       (cond
         ((getf options :help) (show-help))
         ((getf options :version) (show-version))
@@ -76,9 +82,15 @@ exec ros -Q -L sbcl-bin -m psychic-eureka -- $0 "$@"
          (arg-parse-error "screen width and height must be positive"))
         ((and delay (< delay 0))
          (arg-parse-error "time delay must be nonnegative"))
+        ((and repeats (minusp repeats))
+         (arg-parse-error "number of repeats must be nonnegative"))
         (t (psychic-eureka:initialize-screen)
            (handler-case 
              (loop
+               (when repeats
+                 (if (zerop repeats)
+                   (return)
+                   (decf repeats)))
                (funcall psychic-eureka:*buffer-update-fn*)
                (psychic-eureka:display-buffer psychic-eureka:*buffer*)
                (sleep (/ delay 1000)))

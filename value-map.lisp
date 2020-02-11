@@ -33,3 +33,19 @@
         (t (let ((color (floor (* 5/2 (- index 3/5) 255))))
              (values color (- 255 color) 0)))))))
 
+;; same as heatmap, but ends and begins at violet
+(defun value-to-circular-heatmap (value &optional value-max value-min)
+  (let ((value-max (or value-max *value-maximum*))
+        (value-min (or value-min *value-minimum*)))
+    (let ((index (mod (/ (- value value-min) 
+                         (- value-max value-min)) 1)))
+      (cond
+        ((<= index 1/3)
+         (let ((color (floor (* (* 3 index) 255))))
+           (values (- 255 color) 0 color)))
+        ((<= index 2/3)
+         (let ((color (floor (* 3 (- index 1/3) 255))))
+           (values 0 color (- 255 color))))
+        (t (let ((color (floor (* 3 (- index 2/3) 255))))
+             (values color (- 255 color) 0)))))))
+
